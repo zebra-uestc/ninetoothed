@@ -13,7 +13,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable
 
-from ninetoothed.backends.core import BuiltArtifact, Target
+from ninetoothed.backends.core import BuiltArtifact, Target, is_triton_backend
 from ninetoothed.compiler.cache import (
     atomic_write_bytes,
     compilation_cache_key,
@@ -105,7 +105,7 @@ def materialize(
     validate_artifact_materialization(compilation.artifact, mode=mode)
     compilation.target.validate_materialization(mode)
 
-    if target != Target.TRITON and _requires_runtime_specialization(compilation):
+    if not is_triton_backend(target) and _requires_runtime_specialization(compilation):
         return _materialize_lazy(compilation, output_dir=output_dir, mode=mode)
 
     from ninetoothed.backends.materializers import materializer_for

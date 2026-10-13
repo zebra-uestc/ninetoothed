@@ -10,6 +10,7 @@ from ninetoothed.ir import Kernel
 
 class Target(str, Enum):
     TRITON = "triton"
+    TRITON_ASCEND = "triton-ascend"
     TILELANG = "tilelang"
     CUDA = "cuda"
 
@@ -17,6 +18,8 @@ class Target(str, Enum):
 _CANONICAL_BACKEND_NAMES = {
     None: Target.TRITON,
     "triton": Target.TRITON,
+    "triton-ascend": Target.TRITON_ASCEND,
+    "triton_ascend": Target.TRITON_ASCEND,
     "tilelang": Target.TILELANG,
     "cuda": Target.CUDA,
 }
@@ -138,6 +141,10 @@ def backend_id_for(name: Target | str) -> str:
     """Return a normalized registry id without restricting plugin backends."""
     value = name.value if isinstance(name, Target) else str(name)
     backend_id = value.strip().lower()
+    canonical = _CANONICAL_BACKEND_NAMES.get(backend_id)
+
+    if canonical is not None:
+        backend_id = canonical.value
 
     if not backend_id:
         raise ValueError("Backend id must not be empty.")
@@ -148,7 +155,7 @@ def normalize_target(name: Target | str | None) -> Target:
     if isinstance(name, Target):
         return name
 
-    key = None if name is None else str(name).lower()
+    key = None if name is None else str(name).strip().lower()
 
     try:
         return _CANONICAL_BACKEND_NAMES[key]
@@ -161,3 +168,8 @@ def normalize_target(name: Target | str | None) -> Target:
         raise ValueError(
             f"Unsupported backend `{name}`. Supported backends: {supported}."
         ) from exc
+
+
+def is_triton_backend(name: Target | str | None) -> bool:
+    """Return whether a target emits Triton language source."""
+    return normalize_target(name) in {Target.TRITON, Target.TRITON_ASCEND}

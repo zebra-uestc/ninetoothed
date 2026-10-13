@@ -14,6 +14,7 @@ from ninetoothed.backends import default_registry, emit
 from ninetoothed.backends.core import (
     Artifact,
     Target,
+    is_triton_backend,
     normalize_target,
 )
 from ninetoothed.frontend.layout import tensor_specs
@@ -325,7 +326,7 @@ def _compile_kernel(request: CompileRequest) -> Compilation:
     _validate_tuning_options(target, request)
     specialization_values = dict(request.specialization_values or {})
 
-    if target != Target.TRITON:
+    if not is_triton_backend(target):
         specialization_values = {
             name: value
             for name, value in specialization_values.items()
@@ -687,7 +688,7 @@ def _launch_plan(
     )
     candidates = (
         _triton_tuning_candidates(metadata, request, arranged)
-        if artifact.backend == Target.TRITON
+        if is_triton_backend(artifact.backend)
         else ()
     )
 
@@ -717,7 +718,7 @@ def _validate_tuning_options(target: Target, request: CompileRequest) -> None:
         if not values or any(int(item) < 1 for item in values):
             raise ValueError(f"The `{name}` value must contain positive integers.")
 
-    if target == Target.TRITON:
+    if is_triton_backend(target):
         return
 
     if (

@@ -708,8 +708,19 @@ def _render_access_expression(expression, replacements) -> str:
 TARGET = TritonTarget()
 
 
-def emit(kernel: Kernel):
-    return common.emit(kernel, TARGET)
+def emit(
+    kernel: Kernel,
+    *,
+    backend: Target = Target.TRITON,
+    source_route: str = "ssa-unified-triton-emitter",
+):
+    target = replace(
+        TARGET,
+        backend=backend,
+        source_route=source_route,
+    )
+
+    return common.emit(kernel, target)
 
 
 __all__ = ["TARGET", "TritonTarget", "emit"]

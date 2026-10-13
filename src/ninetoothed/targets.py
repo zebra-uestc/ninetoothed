@@ -465,7 +465,10 @@ def create_default_platform_registry() -> PlatformRegistry:
         PlatformProfile(
             name="generic",
             device_types=("cuda",),
-            backend_modes=_backend_modes(tuple(Target)),
+            backend_modes={
+                **_backend_modes((Target.TRITON, Target.TILELANG, Target.CUDA)),
+                Target.TRITON_ASCEND.value: frozenset(("jit",)),
+            },
             metadata={"legacy_default": True},
         ),
         PlatformProfile(
@@ -474,7 +477,7 @@ def create_default_platform_registry() -> PlatformRegistry:
             accelerator_name="a100",
             compute_arch="sm_80",
             device_types=("cuda",),
-            backend_modes=_backend_modes(tuple(Target)),
+            backend_modes=_backend_modes((Target.TRITON, Target.TILELANG, Target.CUDA)),
             unsupported_capabilities=frozenset({"dtype.fp8"}),
         ),
         PlatformProfile(
@@ -483,7 +486,7 @@ def create_default_platform_registry() -> PlatformRegistry:
             accelerator_name="h100",
             compute_arch="sm_90",
             device_types=("cuda",),
-            backend_modes=_backend_modes(tuple(Target)),
+            backend_modes=_backend_modes((Target.TRITON, Target.TILELANG, Target.CUDA)),
             supported_capabilities=frozenset({"dtype.fp8"}),
         ),
         PlatformProfile(
@@ -502,12 +505,19 @@ def create_default_platform_registry() -> PlatformRegistry:
             accelerator_name="910b3",
             compute_arch="ascend910b3",
             device_types=("npu",),
-            backend_modes=_backend_modes((Target.TRITON,), modes=("jit",)),
+            backend_modes=_backend_modes(
+                (Target.TRITON, Target.TRITON_ASCEND), modes=("jit",)
+            ),
             unsupported_capabilities=frozenset({"math.pow"}),
             backend_unsupported_capabilities={
                 Target.TRITON.value: frozenset({"dtype.fp8"})
             },
-            constraints={"compiler_options": {"triton": {"max_num_configs": 1}}},
+            constraints={
+                "compiler_options": {
+                    "triton": {"max_num_configs": 1},
+                    "triton-ascend": {"max_num_configs": 1},
+                }
+            },
             metadata={"triton_block_size": 512},
         ),
         PlatformProfile(
@@ -516,9 +526,16 @@ def create_default_platform_registry() -> PlatformRegistry:
             accelerator_name="910b4",
             compute_arch="ascend910b4",
             device_types=("npu",),
-            backend_modes=_backend_modes((Target.TRITON,), modes=("jit",)),
+            backend_modes=_backend_modes(
+                (Target.TRITON, Target.TRITON_ASCEND), modes=("jit",)
+            ),
             unsupported_capabilities=frozenset({"math.pow"}),
-            constraints={"compiler_options": {"triton": {"max_num_configs": 1}}},
+            constraints={
+                "compiler_options": {
+                    "triton": {"max_num_configs": 1},
+                    "triton-ascend": {"max_num_configs": 1},
+                }
+            },
             metadata={"triton_block_size": 512},
         ),
         PlatformProfile(
@@ -758,12 +775,20 @@ def runtime_device_types(value: Any) -> tuple[str, ...]:
     context = getattr(value, "target", None)
 
     if isinstance(context, TargetContext):
-        return context.device_types if context.backend == Target.TRITON else ("cuda",)
+        return (
+            context.device_types
+            if context.backend in {Target.TRITON, Target.TRITON_ASCEND}
+            else ("cuda",)
+        )
 
     artifact = getattr(value, "artifact", value)
     backend = getattr(getattr(artifact, "backend", None), "value", None)
 
-    return target_device_types(value) if backend == Target.TRITON.value else ("cuda",)
+    return (
+        target_device_types(value)
+        if backend in {Target.TRITON.value, Target.TRITON_ASCEND.value}
+        else ("cuda",)
+    )
 
 
 def validate_artifact_materialization(value: Any, *, mode: str) -> None:

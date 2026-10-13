@@ -579,7 +579,9 @@ def _launch_block(kernel: Kernel) -> tuple[str, ...]:
     target_backend = kernel.ssa.metadata.get("target_backend")
     warps = kernel.compiler_options.get("num_warps")
     fallback = (
-        32 * warps if target_backend == "triton" and isinstance(warps, int) else 256
+        32 * warps
+        if target_backend in {"triton", "triton-ascend"} and isinstance(warps, int)
+        else 256
     )
     threads = _schedule_int(kernel, "threads", fallback)
 

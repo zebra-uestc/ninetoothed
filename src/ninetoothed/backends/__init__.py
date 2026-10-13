@@ -23,9 +23,11 @@ def create_default_registry() -> Registry:
     from ninetoothed.backends.cuda import CudaBackend
     from ninetoothed.backends.tilelang import TileLangBackend
     from ninetoothed.backends.triton import TritonBackend
+    from ninetoothed.backends.triton_ascend import TritonAscendBackend
 
     registry = Registry()
     registry.register(TritonBackend())
+    registry.register(TritonAscendBackend())
     registry.register(TileLangBackend())
     registry.register(CudaBackend())
 

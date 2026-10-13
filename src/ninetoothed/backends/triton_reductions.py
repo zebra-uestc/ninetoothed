@@ -18,7 +18,7 @@ change rounding relative to the serial fallback; it is not bitwise equivalent.
 from dataclasses import replace
 from math import prod
 
-from ninetoothed.backends.core import Target
+from ninetoothed.backends.core import Target, is_triton_backend
 from ninetoothed.compiler.passes import LANGUAGE_SPECIFIC, Pass
 from ninetoothed.dtype import normalize_dtype
 
@@ -54,7 +54,7 @@ class TritonBlockReductions(Pass):
     name = "ssa.triton.block_reductions"
     category = LANGUAGE_SPECIFIC
     phase = "optimization"
-    supported_backends = (Target.TRITON,)
+    supported_backends = (Target.TRITON, Target.TRITON_ASCEND)
     default_enabled = False
 
     def run(self, program, context):
@@ -84,7 +84,7 @@ class TritonBlockReductions(Pass):
 
 
 def _rejection(program, context, schedule, *, max_block_elements, max_total_elements):
-    if context.resolved_target.backend != Target.TRITON:
+    if not is_triton_backend(context.resolved_target.backend):
         return "requires the Triton backend"
 
     if schedule.get("reduction", {}).get("mode") == "row-vector":
