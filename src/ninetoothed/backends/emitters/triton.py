@@ -61,6 +61,13 @@ class TritonTarget(EmitterTarget):
     vector_value_semantics: bool = True
     max_vector_numel: int | None = 1 << 20
 
+    def libdevice_module(self) -> str:
+        """Return the Triton-language libdevice module for this target."""
+        if self.backend == Target.TRITON_ASCEND:
+            return "triton.language.extra.cann"
+
+        return "triton.language.extra"
+
     def program_id(self, axis: int = 0) -> str:
         return f"tl.program_id({axis})"
 
@@ -249,6 +256,7 @@ class TritonTarget(EmitterTarget):
             "atan2": "tl.atan2",
             "_atan2_approx": "tl.atan2",
             "ceil": "tl.ceil",
+            "clamp": "tl.clamp",
             "cos": "tl.cos",
             "cosh": "tl.cosh",
             "erf": "tl.erf",
@@ -669,7 +677,7 @@ Lowering IR: ssa.Program
 import triton
 import triton.language as tl
 from math import floor
-from triton.language.extra import libdevice
+from {self.libdevice_module()} import libdevice
 {_RUNTIME_REDUCTION_IDENTITY if "_nt_reduction_identity(" in body else ""}
 {_CAST_LIKE if "_nt_cast_like(" in body else ""}
 {_VECTOR_ELEMENT if "_nt_vector_element(" in body else ""}
